@@ -1,0 +1,1022 @@
+Sub Extraccion_de_archivos_CAM()
+
+
+
+Dim SAPGui
+Dim App
+Dim connection
+Dim session
+
+Dim wshShell
+Dim TiempoEspera As Double
+TiempoEspera = 1
+Set SAPGui = GetObject("SAPGUI")
+Set App = SAPGui.GetScriptingEngine
+Set connection = App.Children(0)
+' Manejar el error si Children(1) no está disponible
+    If Err.Number <> 0 Then
+        Err.Clear
+        Set connection = App.Children(1)
+    End If
+    
+    On Error GoTo 0 ' Restaurar el manejo normal de errores
+    
+    On Error Resume Next
+    Set session = connection.Children(1)
+    
+    ' Manejar el error si Children(1) no está disponible
+    If Err.Number <> 0 Then
+        Err.Clear
+        Set session = connection.Children(0)
+    End If
+    
+    On Error GoTo 0 ' Restaurar el manejo normal de errores
+    Application.DisplayAlerts = False
+    
+
+
+session.findById("wnd[0]").maximize
+session.findById("wnd[0]/tbar[0]/okcd").Text = "iw39"
+session.findById("wnd[0]").sendVKey 0
+session.findById("wnd[0]/tbar[1]/btn[17]").press
+session.findById("wnd[1]/usr/txtV-LOW").Text = "SQCODIGO2"
+session.findById("wnd[1]/usr/txtV-LOW").caretPosition = 9
+session.findById("wnd[1]/tbar[0]/btn[8]").press
+
+Dim objExcel
+Dim objSheet, intRow, i
+'Set objExcel = GetObject(, "Excel.Application")
+On Error Resume Next
+Set objExcel = GetObject(, "Excel.Application")
+If objExcel Is Nothing Then
+    MsgBox "No se pudo encontrar una instancia de Excel en ejecución.", vbExclamation
+    Exit Sub
+End If
+
+
+
+Set objSheet = objExcel.ActiveWorkbook.ActiveSheet
+
+i = 5
+
+cOL1 = Trim(CStr(objSheet.Cells(i, 10).Value)) 'Fecha inicio
+cOL2 = Trim(CStr(objSheet.Cells(i, 11).Value)) 'Fecha fin
+cOL3 = Trim(CStr(objSheet.Cells(i, 12).Value)) 'Año
+
+session.findById("wnd[0]/usr/ctxtGSTRS-LOW").Text = cOL1
+session.findById("wnd[0]/usr/ctxtGSTRS-HIGH").Text = cOL2
+
+aux = cOL1 & " " & cOL2 & " " & cOL3
+CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\aprmttoyu\Desktop\CreandoLog.txt")
+
+session.findById("wnd[0]/tbar[1]/btn[8]").press
+session.findById("wnd[0]/tbar[1]/btn[8]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/tbar[1]/btn[16]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[0,0]").Select
+session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[0,0]").SetFocus
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+ 
+    Dim hoja As Worksheet
+    Dim UltimaFila As Long
+    Dim celda As Range
+    Dim columnaMes As Range
+    Dim nombreMes As String
+    
+    ' Define la hoja de trabajo activa
+    Set hoja = ActiveSheet
+    
+    ' Encuentra la última fila con datos en la columna A
+    UltimaFila = hoja.Cells(hoja.Rows.Count, "A").End(xlUp).Row
+    
+    ' Recorre las columnas A, F y G desde la fila 2 hasta la última fila
+    For Each celda In hoja.Range("A2:A" & UltimaFila & ", F2:F" & UltimaFila & ", G2:G" & UltimaFila)
+        ' Convierte el contenido de cada celda a un número
+        If IsNumeric(celda.Value) Then
+            celda.Value = CDbl(celda.Value)
+        End If
+    Next celda
+    
+    ' Aplica formato numérico a la columna A desde la fila 2 hasta la última fila
+    hoja.Range("A2:A" & UltimaFila).NumberFormat = "0"
+    
+    ' Aplica formato numérico a la columna F desde la fila 2 hasta la última fila
+    hoja.Range("F2:F" & UltimaFila).NumberFormat = "0"
+    
+    ' Aplica formato numérico a la columna G desde la fila 2 hasta la última fila
+    hoja.Range("G2:G" & UltimaFila).NumberFormat = "0"
+    
+    ' Inserta una nueva columna entre las columnas B y C
+    hoja.Columns("C:C").Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+    
+    ' Asigna el encabezado "Mes" a la nueva columna
+    hoja.Range("C1").Value = "Mes"
+    
+    For Each celda In hoja.Range("D2:D" & UltimaFila)
+        If IsDate(celda.Value) Then
+            nombreMes = UCase(Left(Format(celda.Value, "mmmm"), 1)) & LCase(Mid(Format(celda.Value, "mmmm"), 2))
+            celda.Offset(0, -1).Value = nombreMes
+        End If
+    Next celda
+    
+
+nombreArchivo = "Órdenes Mtto PM02 " & nombreMes & ".xlsx"
+Dim rutaArchivoExcel
+rutaArchivoExcel = "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\" & nombreArchivo
+
+' Eliminar el archivo existente si existe
+    On Error Resume Next ' Ignorar errores
+    Kill rutaArchivoExcel ' Eliminar el archivo
+    On Error GoTo 0 ' Reanudar manejo normal de errores
+
+Set objExcel = GetObject(, "Excel.Application")
+
+objExcel.Visible = True
+
+Set objWorkbook = objExcel.ActiveWorkbook
+
+
+objWorkbook.SaveAs rutaArchivoExcel
+
+'________________________________
+
+Set objWorkbook = Nothing
+Set objExcel = Nothing
+
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+
+'Set session = Nothing
+
+session.findById("wnd[0]/tbar[0]/okcd").Text = "IW29"
+session.findById("wnd[0]").sendVKey 0
+session.findById("wnd[0]/tbar[1]/btn[17]").press
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/usr/txtV-LOW").Text = "SQCODIGO2"
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/usr/txtV-LOW").caretPosition = 9
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/tbar[0]/btn[8]").press
+
+
+session.findById("wnd[0]/usr/ctxtDATUV").Text = cOL1
+session.findById("wnd[0]/usr/ctxtDATUB").Text = cOL2
+  
+aux = cOL1 & " " & cOL2 & " " & cOL3
+CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\aprmttoyu\Desktop\CreandoLog.txt")
+
+session.findById("wnd[0]/tbar[1]/btn[8]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").setCurrentCell -1, ""
+session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").SelectAll
+session.findById("wnd[0]/tbar[1]/btn[16]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[0,0]").Select
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+
+Dim hoja1 As Worksheet
+    Dim ultimaFila1 As Long
+    Dim celda1 As Range
+    Dim columnaMes1 As Range
+    Dim nombreMes1 As String
+    Set hoja1 = ActiveSheet
+    ultimaFila1 = hoja1.Cells(hoja1.Rows.Count, "A").End(xlUp).Row
+
+    For Each celda1 In hoja1.Range("A2:A" & ultimaFila1 & ", F2:F" & ultimaFila1 & ", G2:G" & ultimaFila1)
+        If IsNumeric(celda1.Value) Then
+            celda1.Value = CDbl(celda1.Value)
+        End If
+    Next celda1
+    
+    hoja1.Range("A2:A" & ultimaFila1).NumberFormat = "0"
+
+    hoja1.Columns("B:B").Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+
+    hoja1.Range("B1").Value = "Mes"
+
+    For Each celda1 In hoja1.Range("C2:C" & ultimaFila1)
+        If IsDate(celda1.Value) Then
+            nombreMes = UCase(Left(Format(celda1.Value, "mmmm"), 1)) & LCase(Mid(Format(celda1.Value, "mmmm"), 2))
+            celda1.Offset(0, -1).Value = nombreMes
+        End If
+    Next celda1
+
+
+nombreArchivo1 = "IW29 Avisos de maquinaria " & nombreMes & ".xlsx"
+
+Dim rutaArchivoExcel1
+'AQUI CAMBIE LA RUTA
+rutaArchivoExcel1 = "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\" & nombreArchivo1 ' Cambia esta ruta según tus necesidades
+
+' Eliminar el archivo existente si existe
+    On Error Resume Next ' Ignorar errores
+    Kill rutaArchivoExcel1 ' Eliminar el archivo
+    On Error GoTo 0 ' Reanudar manejo normal de errores
+
+Set objExcel1 = GetObject(, "Excel.Application")
+
+objExcel1.Visible = True
+
+Set objWorkbook1 = objExcel1.ActiveWorkbook
+
+objWorkbook1.SaveAs rutaArchivoExcel1
+
+
+'__________________________________________________
+
+Set objWorkbook1 = Nothing
+Set objExcel1 = Nothing
+
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+session.findById("wnd[0]/tbar[0]/okcd").Text = "IW67"
+session.findById("wnd[0]").sendVKey 0
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[0]/tbar[1]/btn[17]").press
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/usr/txtV-LOW").Text = "SQCODIGO2"
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/usr/txtV-LOW").caretPosition = 9
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[1]/tbar[0]/btn[8]").press
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+
+session.findById("wnd[0]/usr/ctxtDATUV").Text = cOL1
+session.findById("wnd[0]/usr/ctxtDATUB").Text = cOL2
+
+aux = cOL1 & " " & cOL2 & " " & cOL3
+CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\aprmttoyu\Desktop\CreandoLog.txt")
+session.findById("wnd[0]/tbar[1]/btn[8]").press
+Application.Wait (Now + TimeValue("00:00:05")) ' Espera 5 segundos antes de continuar
+session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").setCurrentCell -1, "ARBPL"
+session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").selectColumn "ARBPL"
+session.findById("wnd[0]/tbar[1]/btn[38]").press
+session.findById("wnd[1]/usr/ssub%_SUBSCREEN_FREESEL:SAPLSSEL:1105/ctxt%%DYN001-LOW").Text = ""
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/tbar[1]/btn[16]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[0,0]").Select
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+
+Dim hoja2 As Worksheet
+    Dim ultimaFila2 As Long
+    Dim celda2 As Range
+    Dim columnaMes2 As Range
+    Dim nombreMes2 As String
+
+    Set hoja2 = ActiveSheet
+
+    ultimaFila2 = hoja2.Cells(hoja2.Rows.Count, "A").End(xlUp).Row
+
+    For Each celda2 In hoja2.Range("C2:C" & ultimaFila2 & ", E2:E" & ultimaFila2 & ", F2:F" & ultimaFila2)
+
+        If IsNumeric(celda2.Value) Then
+            celda2.Value = CDbl(celda2.Value)
+        End If
+    Next celda2
+    hoja2.Range("C2:C" & ultimaFila2).NumberFormat = "0"
+
+    hoja2.Range("E2:E" & ultimaFila2).NumberFormat = "0"
+    hoja2.Columns("F:F").Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+
+    hoja2.Range("F1").Value = "Mes"
+    For Each celda2 In hoja2.Range("G2:G" & ultimaFila2)
+        If IsDate(celda2.Value) Then
+            nombreMes = UCase(Left(Format(celda2.Value, "mmmm"), 1)) & LCase(Mid(Format(celda2.Value, "mmmm"), 2))
+            celda2.Offset(0, -1).Value = nombreMes
+        End If
+    Next celda2
+    
+nombreArchivo2 = "IW67 Avisos produccion " & nombreMes & ".xlsx"
+
+Dim rutaArchivoExcel2
+rutaArchivoExcel2 = "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\" & nombreArchivo2 ' Cambia esta ruta según tus necesidades
+
+' Eliminar el archivo existente si existe
+    On Error Resume Next ' Ignorar errores
+    Kill rutaArchivoExcel2 ' Eliminar el archivo
+    On Error GoTo 0 ' Reanudar manejo normal de errores
+
+Set objExcel2 = GetObject(, "Excel.Application")
+objExcel2.Visible = True
+
+Set objWorkbook2 = objExcel2.ActiveWorkbook
+
+objWorkbook2.SaveAs rutaArchivoExcel2
+
+
+'_______________________________________________________
+
+
+
+Set objWorkbook2 = Nothing
+Set objExce2 = Nothing
+
+session.findById("wnd[1]/tbar[0]/btn[0]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+session.findById("wnd[0]/tbar[0]/btn[3]").press
+
+session.findById("wnd[0]/tbar[0]/okcd").Text = "ZBCRE009"
+session.findById("wnd[0]").sendVKey 0
+session.findById("wnd[0]/tbar[1]/btn[17]").press
+session.findById("wnd[1]/usr/txtV-LOW").Text = "EFIC PLANTA"
+session.findById("wnd[1]/usr/txtENAME-LOW").Text = ""
+session.findById("wnd[1]/usr/txtV-LOW").caretPosition = 11
+session.findById("wnd[1]/tbar[0]/btn[8]").press
+session.findById("wnd[0]/usr/txtPEJERC").Text = cOL3
+session.findById("wnd[0]/usr/ctxtSFECHA-LOW").Text = cOL1
+session.findById("wnd[0]/usr/ctxtSFECHA-HIGH").Text = cOL2
+
+aux = cOL1 & " " & cOL2 & " " & cOL3
+CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\aprmttoyu\Desktop\CreandoLog.txt")
+'CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\CreandoLog.txt")
+session.findById("wnd[0]/usr/ctxtSFECHA-HIGH").SetFocus
+session.findById("wnd[0]/usr/ctxtSFECHA-HIGH").caretPosition = 10
+session.findById("wnd[0]/usr/btn%_SCENTR_%_APP_%-VALU_PUSH").press
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,0]").Text = "0002"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,1]").Text = "0011"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,2]").Text = "0021"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,3]").Text = "0398"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,4]").Text = "0079"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").Text = "0092"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,6]").Text = "0111"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").Text = "0381"
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").SetFocus
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").caretPosition = 4
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE").verticalScrollbar.Position = 3
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").Text = "0198"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,6]").Text = "0385"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").Text = "0395"
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").caretPosition = 4
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE").verticalScrollbar.Position = 6
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE").verticalScrollbar.Position = 9
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,2]").Text = "0393"
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,3]").Text = "0410"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,4]").Text = "0438"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").Text = "0441"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,6]").Text = "0447"
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").Text = "0422"
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,7]").caretPosition = 4
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE").verticalScrollbar.Position = 12
+'session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").Text = "0445"
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").SetFocus
+session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/ctxtRSCSEL_255-SLOW_I[1,5]").caretPosition = 4
+session.findById("wnd[1]/tbar[0]/btn[8]").press
+Set objExcel = GetObject(, "Excel.Application")
+objExcel.DisplayAlerts = False
+objExcel.EnableEvents = False
+session.findById("wnd[0]/tbar[1]/btn[8]").press
+
+' Desactivar actualizaciones visuales y eventos en Excel
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+
+
+Set objExcel = GetObject(, "Excel.Application")
+    Set objSheet = objExcel.ActiveWorkbook.ActiveSheet
+    
+    i = 5
+    
+    cOL1 = Trim(CStr(objSheet.Cells(i, 13).Value)) 'Mes
+    
+    aux = cOL1
+    CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\sfquintero\Desktop\CreandoLog.txt")
+    ' Eliminar el archivo existente si existe
+    On Error Resume Next ' Ignorar errores
+    Kill "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM" & "ZBCRE009 " & cOL1 & ".txt" ' Eliminar el archivo
+    On Error GoTo 0 ' Reanudar manejo normal de errores
+    session.findById("wnd[0]/mbar/menu[0]/menu[5]/menu[2]/menu[2]").Select
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").Select
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").SetFocus
+    session.findById("wnd[1]/tbar[0]/btn[0]").press
+    session.findById("wnd[1]/usr/ctxtDY_PATH").Text = "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM"
+    'session.findById("wnd[1]/usr/ctxtDY_PATH").Text = "C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam"
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").Text = "ZBCRE009 " & cOL1 & ".txt"
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = 22
+    session.findById("wnd[1]/tbar[0]/btn[0]").press
+    
+    Dim excelApp
+    Dim SourceWorkbook
+    Dim SourceWorksheet
+    Dim AutoFilterRange
+    Dim DestWorkbook
+    Dim DestWorksheet
+    Dim CopyRangeO, CopyRangeP, CopyRangeE
+    Dim PasteRangeB, PasteRangeC, PasteRangeA
+    Dim LastRowO, LastRowP, LastRowE
+    Dim cell As Range
+
+    ' Crear una instancia de Excel
+    Set excelApp = CreateObject("Excel.Application")
+
+    ' Hacer visible la aplicación de Excel (opcional)
+    excelApp.Visible = True
+
+    ' Abrir el archivo de origen
+    Set SourceWorkbook = excelApp.Workbooks.Open("C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 " & cOL1 & ".txt")
+    'Set SourceWorkbook = excelApp.Workbooks.Open("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 " & cOL1 & ".txt") 'error
+
+
+    ' Referenciar la primera hoja del archivo de origen (ajustar según tus necesidades)
+    Set SourceWorksheet = SourceWorkbook.Sheets(1)
+
+    ' Definir el rango a filtrar (en este caso, la columna A)
+    Set AutoFilterRange = SourceWorksheet.Range("A:A")
+
+    ' Filtrar por "CENTRO" y "GRAN TOTAL:"
+    AutoFilterRange.AutoFilter Field:=1, Criteria1:="CENTRO", Operator:=xlOr, Criteria2:="GRAN TOTAL:"
+
+    ' Encontrar la última fila con datos en las columnas O, P y E
+    On Error Resume Next
+    LastRowO = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "O").End(-4162).Row ' -4162 es la constante xlUp
+    LastRowP = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "P").End(-4162).Row ' -4162 es la constante xlUp
+    LastRowE = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "E").End(-4162).Row ' -4162 es la constante xlUp
+    On Error GoTo 0
+
+    ' Verificar si hay datos en las columnas O, P y E después del filtro
+    If LastRowO > 0 And LastRowP > 0 And LastRowE > 0 Then
+        ' Crear un nuevo archivo de Excel
+        Set DestWorkbook = excelApp.Workbooks.Add
+
+        ' Referenciar la primera hoja del nuevo archivo
+        Set DestWorksheet = DestWorkbook.Sheets(1)
+
+        ' Definir rangos de copia y pegado
+        Set CopyRangeO = SourceWorksheet.Range(SourceWorksheet.Cells(1, 15), SourceWorksheet.Cells(LastRowO, 15)) ' Columna O en notación VBS (15)
+        Set CopyRangeP = SourceWorksheet.Range(SourceWorksheet.Cells(1, 16), SourceWorksheet.Cells(LastRowP, 16)) ' Columna P en notación VBS (16)
+        Set CopyRangeE = SourceWorksheet.Range(SourceWorksheet.Cells(1, 5), SourceWorksheet.Cells(LastRowE, 5))   ' Columna E en notación VBS (5)
+
+        Set PasteRangeB = DestWorksheet.Range("B2")
+        Set PasteRangeC = DestWorksheet.Range("C2")
+        Set PasteRangeA = DestWorksheet.Cells(1, 1) ' Comienza desde la celda A1
+
+        ' Filtrar y copiar solo las celdas no vacías y visibles de las columnas O y P
+        For Each cell In CopyRangeO.SpecialCells(xlCellTypeVisible)
+            If Not IsEmpty(cell.Value) Then
+                PasteRangeB.Value = cell.Value
+                Set PasteRangeB = PasteRangeB.Offset(1, 0)
+            End If
+        Next cell
+
+        For Each cell In CopyRangeP.SpecialCells(xlCellTypeVisible)
+            If Not IsEmpty(cell.Value) Then
+                PasteRangeC.Value = cell.Value
+                Set PasteRangeC = PasteRangeC.Offset(1, 0)
+            End If
+        Next cell
+
+        ' Copiar datos de la columna E y quitar duplicados
+        CopyRangeE.Copy
+        DestWorksheet.Range("A:A").PasteSpecial Paste:=xlPasteValues
+        DestWorksheet.Range("A:A").RemoveDuplicates Columns:=1, Header:=xlNo
+        Application.CutCopyMode = False ' Limpiar el portapapeles después de la operación de copiar y pegar
+
+        ' Eliminar el primer dato después de quitar duplicados en la columna A
+        If DestWorksheet.Cells(1, 1).Value <> "" Then
+            DestWorksheet.Cells(1, 1).Delete Shift:=xlUp
+        End If
+
+' Reemplazar valores específicos en la columna A del nuevo archivo
+For Each cell In DestWorksheet.Range("A2:A" & DestWorksheet.Cells(DestWorksheet.Rows.Count, "A").End(xlUp).Row)
+    Dim cellValue As Variant
+    cellValue = cell.Value
+    
+    If cellValue = "2" Then
+        cell.Value = "GASCOL CENTRO"
+    ElseIf cellValue = "11" Then
+        cell.Value = "GASCOL SUR"
+    ElseIf cellValue = "410" Then
+        cell.Value = "POSTOBON YUMBO"
+    ElseIf cellValue = "21" Then
+        cell.Value = "LUX BOGOTA"
+    ElseIf cellValue = "79" Then
+        cell.Value = "POSTOBON BELLO"
+    ElseIf cellValue = "92" Then
+        cell.Value = "POSTOBON MEDELLIN"
+    ElseIf cellValue = "111" Then
+        cell.Value = "POSTOBON MALAMBO"
+    ElseIf cellValue = "198" Then
+        cell.Value = "POSTOBON PEREIRA"
+    ElseIf cellValue = "381" Then
+        cell.Value = "GAS CORDOBA MONTERIA"
+    ElseIf cellValue = "385" Then
+        cell.Value = "GAS CORDOBA NEIVA"
+    ElseIf cellValue = "393" Then
+        cell.Value = "GAS CORDOBA VILLAVICENCIO"
+    ElseIf cellValue = "395" Then
+        cell.Value = "GAS CORDOBA PASTO"
+    ElseIf cellValue = "398" Then
+        cell.Value = "LUX VILLAVICENCIO"
+    ElseIf cellValue = "422" Then
+        cell.Value = "HIPINITO PIEDECUESTA"
+    ElseIf cellValue = "438" Then
+        cell.Value = "HIPINITO CUCUTA"
+    ElseIf cellValue = "441" Then
+        cell.Value = "HIPINITO DUITAMA"
+    ElseIf cellValue = "445" Then
+        cell.Value = "NGB"
+    ElseIf cellValue = "447" Then
+        cell.Value = "HIPINITO VALLEDUPAR"
+    End If
+Next cell
+
+' Establecer títulos en las celdas A1 y B1
+DestWorksheet.Range("A1").Value = "CENTRO"
+DestWorksheet.Range("B1").Value = "Eficiencia mecanica"
+DestWorksheet.Range("C1").Value = "Tiempo de produccion"
+
+        ' Desactivar las alertas
+        excelApp.DisplayAlerts = False
+        ' Guardar el nuevo archivo con un nombre específico
+        'DestWorkbook.SaveAs "C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 " & cOL1 & ".xlsx"
+        DestWorkbook.SaveAs "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 " & cOL1 & ".xlsx"
+
+
+        ' Cerrar ambos libros de Excel
+        SourceWorkbook.Close False
+        DestWorkbook.Close True
+        excelApp.Quit
+        ' Liberar los recursos de Excel al finalizar
+        Set PasteRangeB = Nothing
+        Set PasteRangeC = Nothing
+        Set PasteRangeA = Nothing
+        Set CopyRangeO = Nothing
+        Set CopyRangeP = Nothing
+        Set CopyRangeE = Nothing
+        Set DestWorksheet = Nothing
+        Set DestWorkbook = Nothing
+        Set AutoFilterRange = Nothing
+        Set SourceWorksheet = Nothing
+        Set SourceWorkbook = Nothing
+        Set excelApp = Nothing
+    Else
+        ' Si no hay datos, mostrar un mensaje o tomar la acción adecuada
+        MsgBox "No hay datos después de aplicar el filtro.", vbInformation
+        SourceWorkbook.Close False
+        Set SourceWorkbook = Nothing
+        Set excelApp = Nothing
+    End If
+    
+    Dim ArchivoOriginal As Workbook
+    Dim ArchivoAB As Workbook
+    Dim ArchivoAC As Workbook
+    Dim HojaOriginal As Worksheet
+    Dim HojaAB As Worksheet
+    Dim HojaAC As Worksheet
+
+    ' Definir el archivo original
+    'C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM
+    Set ArchivoOriginal = Workbooks.Open("C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 " & cOL1 & ".xlsx")
+    'Set ArchivoOriginal = Workbooks.Open("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 " & cOL1 & ".xlsx")
+    ' Crear un nuevo archivo para los datos de las columnas A y B
+    Set ArchivoAB = Workbooks.Add
+    Set HojaAB = ArchivoAB.Sheets(1)
+
+    ' Crear un nuevo archivo para los datos de las columnas A y C
+    Set ArchivoAC = Workbooks.Add
+    Set HojaAC = ArchivoAC.Sheets(1)
+
+    ' Referenciar la hoja original
+    Set HojaOriginal = ArchivoOriginal.Sheets(1)
+
+    ' Encontrar la última fila con datos en la columna A
+    UltimaFila = HojaOriginal.Cells(HojaOriginal.Rows.Count, "A").End(xlUp).Row
+
+    ' Copiar datos de las columnas A y B al nuevo archivo
+    HojaOriginal.Range("A1:B" & UltimaFila).Copy Destination:=HojaAB.Range("A1")
+
+    ' Copiar datos de las columnas A y C al nuevo archivo
+    HojaOriginal.Range("A1:C" & UltimaFila).Copy Destination:=HojaAC.Range("A1")
+    
+    ' Eliminar la columna B en el archivo AC
+    HojaAC.Columns("B:B").Delete
+    Application.DisplayAlerts = False
+    ' Guardar los nuevos archivos con nombres específicos
+    ArchivoAB.SaveAs "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 Eficiencia mecanica" & cOL1 & ".xlsx"
+    ArchivoAC.SaveAs "C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 Tiempo produccion" & cOL1 & ".xlsx"
+    
+    'ArchivoAB.SaveAs "C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 Eficiencia mecanica " & cOL1 & ".xlsx"
+    'ArchivoAC.SaveAs "C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 Tiempo produccion " & cOL1 & ".xlsx"
+
+
+   
+
+
+
+    ' Cerrar los archivos sin guardar cambios
+    ArchivoAB.Close False
+    ArchivoAC.Close False
+    ArchivoOriginal.Close False
+    
+    
+    session.SendCommand "/n"
+    
+    ThisWorkbook.Close SaveChanges:=False
+    
+    
+    Call KillAllProcesses
+
+    
+    
+    
+  End Sub
+  
+    Sub KillAllProcesses()
+        Dim wshShell As Object
+        Set wshShell = CreateObject("WScript.Shell")
+        On Error Resume Next
+        wshShell.Run "taskkill /F /IM saplogon.exe", 0, False
+        wshShell.Run "taskkill /F /IM sapgui.exe", 0, False
+        Application.Wait Now + TimeValue("00:00:02")
+        wshShell.Run "taskkill /F /IM EXCEL.EXE", 0, False
+        Application.Wait Now + TimeValue("00:00:02")
+
+        wshShell.Run "taskkill /F /FI ""IMAGENAME ne explorer.exe""", 0, False
+        Set wshShell = Nothing
+        On Error GoTo 0
+    End Sub
+
+
+
+
+
+  
+  
+  Sub enviarporcorreo() 'configurar esta macro si se quiere realizar el envio de los archivos por correo.
+    
+    '_________________________________________
+    
+    
+    Dim URL As String
+    Dim apiKey As String
+    Dim fromEmail As String
+    Dim toEmail As String
+    Dim subject As String
+    Dim body As String
+    Dim attachments As Collection
+    Dim json As String
+    Dim xmlhttp As Object
+    Dim response As String
+    
+    ' Configuración de la API de Postmark
+    apiKey = "f5ea6baa-c095-49e4-ae8a-e2e710e0932b"
+    URL = "https://api.postmarkapp.com/email"
+    fromEmail = "sfquintero@postobon.com.co"
+    'toEmail = "sfquintero@postobon.com.co"
+    toEmail = "pracmt@postobon.com.co"
+    subject = "Archivos CAM"
+    body = "Enviado automaticamente"
+    
+  
+    ' Crear una colección para los archivos adjuntos
+    Set attachments = New Collection
+    'attachments.Add Array("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\cam\ZBCRE009 " & cOL1 & ".xlsx", "ZBCRE009 " & cOL1 & ".xlsx")
+    attachments.Add Array("C:\Users\aprmttoyu\Desktop\BIBLIOCASTIA\CAM\ZBCRE009 " & cOL1 & ".xlsx", "ZBCRE009 " & cOL1 & ".xlsx")
+    attachments.Add Array("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\macrodeprueba\" & nombreArchivo, nombreArchivo)
+    attachments.Add Array("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\macrodeprueba\" & nombreArchivo1, nombreArchivo1)
+    attachments.Add Array("C:\Users\pracmt\OneDrive - Gaseosas Postobon S.A\Escritorio\macrodeprueba\" & nombreArchivo2, nombreArchivo2)
+    
+    ' Crear el JSON para la solicitud
+    json = "{""From"":""" & fromEmail & """,""To"":""" & toEmail & """,""Subject"":""" & subject & """,""TextBody"":""" & body & """,""Attachments"":["
+    
+    'Dim i As Integer
+    For i = 1 To attachments.Count
+        Dim filePath As String
+        Dim fileName As String
+        Dim base64Content As String
+        
+        filePath = attachments(i)(0)
+        fileName = attachments(i)(1)
+        base64Content = EncodeFileToBase64(filePath)
+        
+        json = json & "{""Name"":""" & fileName & """,""Content"":""" & base64Content & """,""ContentType"":""application/octet-stream""}"
+        
+        If i < attachments.Count Then
+            json = json & ","
+        End If
+    Next i
+    
+    json = json & "]}"
+    
+    ' Crear el objeto XMLHTTP
+    Set xmlhttp = CreateObject("MSXML2.XMLHTTP")
+    
+    ' Hacer la solicitud POST
+    With xmlhttp
+        .Open "POST", URL, False
+        .setRequestHeader "Accept", "application/json"
+        .setRequestHeader "Content-Type", "application/json"
+        .setRequestHeader "X-Postmark-Server-Token", apiKey
+        .Send json
+        response = .responseText
+    End With
+    
+    ' Verificar la respuesta
+    If xmlhttp.Status = 200 Then
+        
+    Else
+        MsgBox "Error al enviar el correo: " & response
+    End If
+    
+    ' Liberar el objeto
+    Set xmlhttp = Nothing
+
+End Sub
+
+
+
+Sub CAMPARTE2()
+
+    Dim SAPGui
+    Dim App
+    Dim connection
+    Dim session
+    Dim wshShell
+    Dim TiempoEspera As Double
+    TiempoEspera = 1
+    Set SAPGui = GetObject("SAPGUI")
+    Set App = SAPGui.GetScriptingEngine
+    Set connection = App.Children(0)
+' Manejar el error si Children(1) no está disponible
+    If Err.Number <> 0 Then
+        Err.Clear
+        Set connection = App.Children(1)
+    End If
+    
+    On Error GoTo 0 ' Restaurar el manejo normal de errores
+    
+    On Error Resume Next
+    Set session = connection.Children(1)
+    
+    ' Manejar el error si Children(1) no está disponible
+    If Err.Number <> 0 Then
+        Err.Clear
+        Set session = connection.Children(0)
+    End If
+    
+    On Error GoTo 0 ' Restaurar el manejo normal de errores
+    Dim objExcel
+    Dim objSheet, intRow, i
+    Set objExcel = GetObject(, "Excel.Application")
+    Set objSheet = objExcel.ActiveWorkbook.ActiveSheet
+    
+    i = 2
+    
+    cOL1 = Trim(CStr(objSheet.Cells(i, 13).Value)) 'Mes
+    
+    aux = cOL1
+    CreateObject("WScript.Shell").Run ("cmd /c @echo %date% %time% " & aux & " >> C:\Users\aprmttoyu\OneDrive - Gaseosas Postobon S.A\Escritorio\CreandoLog.txt")
+    ' Eliminar el archivo existente si existe
+    On Error Resume Next ' Ignorar errores
+    Kill "C:\Users\aprmttoyu\Documents\CAM\" & "ZBCRE009 " & cOL1 & ".txt" ' Eliminar el archivo
+    On Error GoTo 0 ' Reanudar manejo normal de errores
+    session.findById("wnd[0]/mbar/menu[0]/menu[5]/menu[2]/menu[2]").Select
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").Select
+    session.findById("wnd[1]/usr/subSUBSCREEN_STEPLOOP:SAPLSPO5:0150/sub:SAPLSPO5:0150/radSPOPLI-SELFLAG[1,0]").SetFocus
+    session.findById("wnd[1]/tbar[0]/btn[0]").press
+    session.findById("wnd[1]/usr/ctxtDY_PATH").Text = "C:\Users\aprmttoyu\Documents\CAM"
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").Text = "ZBCRE009 " & cOL1 & ".txt"
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").caretPosition = 22
+    session.findById("wnd[1]/tbar[0]/btn[0]").press
+    
+    
+    
+    Dim excelApp
+    Dim SourceWorkbook
+    Dim SourceWorksheet
+    Dim AutoFilterRange
+    Dim DestWorkbook
+    Dim DestWorksheet
+    Dim CopyRangeO, CopyRangeP, CopyRangeE
+    Dim PasteRangeB, PasteRangeC, PasteRangeA
+    Dim LastRowO, LastRowP, LastRowE
+    Dim cell As Range
+
+    ' Crear una instancia de Excel
+    Set excelApp = CreateObject("Excel.Application")
+
+    ' Hacer visible la aplicación de Excel (opcional)
+    excelApp.Visible = True
+
+    ' Abrir el archivo de origen
+    Set SourceWorkbook = excelApp.Workbooks.Open("C:\Users\aprmttoyu\Documents\CAM\ZBCRE009 " & cOL1 & ".txt")
+
+    ' Referenciar la primera hoja del archivo de origen (ajustar según tus necesidades)
+    Set SourceWorksheet = SourceWorkbook.Sheets(1)
+
+    ' Definir el rango a filtrar (en este caso, la columna A)
+    Set AutoFilterRange = SourceWorksheet.Range("A:A")
+
+    ' Filtrar por "CENTRO" y "GRAN TOTAL:"
+    AutoFilterRange.AutoFilter Field:=1, Criteria1:="CENTRO", Operator:=xlOr, Criteria2:="GRAN TOTAL:"
+
+    ' Encontrar la última fila con datos en las columnas O, P y E
+    On Error Resume Next
+    LastRowO = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "O").End(-4162).Row ' -4162 es la constante xlUp
+    LastRowP = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "P").End(-4162).Row ' -4162 es la constante xlUp
+    LastRowE = SourceWorksheet.Cells(SourceWorksheet.Rows.Count, "E").End(-4162).Row ' -4162 es la constante xlUp
+    On Error GoTo 0
+
+    ' Verificar si hay datos en las columnas O, P y E después del filtro
+    If LastRowO > 0 And LastRowP > 0 And LastRowE > 0 Then
+        ' Crear un nuevo archivo de Excel
+        Set DestWorkbook = excelApp.Workbooks.Add
+
+        ' Referenciar la primera hoja del nuevo archivo
+        Set DestWorksheet = DestWorkbook.Sheets(1)
+
+        ' Definir rangos de copia y pegado
+        Set CopyRangeO = SourceWorksheet.Range(SourceWorksheet.Cells(1, 15), SourceWorksheet.Cells(LastRowO, 15)) ' Columna O en notación VBS (15)
+        Set CopyRangeP = SourceWorksheet.Range(SourceWorksheet.Cells(1, 16), SourceWorksheet.Cells(LastRowP, 16)) ' Columna P en notación VBS (16)
+        Set CopyRangeE = SourceWorksheet.Range(SourceWorksheet.Cells(1, 5), SourceWorksheet.Cells(LastRowE, 5))   ' Columna E en notación VBS (5)
+
+        Set PasteRangeB = DestWorksheet.Range("B2")
+        Set PasteRangeC = DestWorksheet.Range("C2")
+        Set PasteRangeA = DestWorksheet.Cells(1, 1) ' Comienza desde la celda A1
+
+        ' Filtrar y copiar solo las celdas no vacías y visibles de las columnas O y P
+        For Each cell In CopyRangeO.SpecialCells(xlCellTypeVisible)
+            If Not IsEmpty(cell.Value) Then
+                PasteRangeB.Value = cell.Value
+                Set PasteRangeB = PasteRangeB.Offset(1, 0)
+            End If
+        Next cell
+
+        For Each cell In CopyRangeP.SpecialCells(xlCellTypeVisible)
+            If Not IsEmpty(cell.Value) Then
+                PasteRangeC.Value = cell.Value
+                Set PasteRangeC = PasteRangeC.Offset(1, 0)
+            End If
+        Next cell
+
+        ' Copiar datos de la columna E y quitar duplicados
+        CopyRangeE.Copy
+        DestWorksheet.Range("A:A").PasteSpecial Paste:=xlPasteValues
+        DestWorksheet.Range("A:A").RemoveDuplicates Columns:=1, Header:=xlNo
+        Application.CutCopyMode = False ' Limpiar el portapapeles después de la operación de copiar y pegar
+
+        ' Eliminar el primer dato después de quitar duplicados en la columna A
+        If DestWorksheet.Cells(1, 1).Value <> "" Then
+            DestWorksheet.Cells(1, 1).Delete Shift:=xlUp
+        End If
+
+' Reemplazar valores específicos en la columna A del nuevo archivo
+For Each cell In DestWorksheet.Range("A2:A" & DestWorksheet.Cells(DestWorksheet.Rows.Count, "A").End(xlUp).Row)
+    Dim cellValue As Variant
+    cellValue = cell.Value
+    
+    If cellValue = "2" Then
+        cell.Value = "GASCOL CENTRO"
+    ElseIf cellValue = "11" Then
+        cell.Value = "GASCOL SUR"
+    ElseIf cellValue = "410" Then
+        cell.Value = "POSTOBON YUMBO"
+    ElseIf cellValue = "21" Then
+        cell.Value = "LUX BOGOTA"
+    ElseIf cellValue = "79" Then
+        cell.Value = "POSTOBON BELLO"
+    ElseIf cellValue = "92" Then
+        cell.Value = "POSTOBON MEDELLIN"
+    ElseIf cellValue = "111" Then
+        cell.Value = "POSTOBON MALAMBO"
+    ElseIf cellValue = "198" Then
+        cell.Value = "POSTOBON PEREIRA"
+    ElseIf cellValue = "381" Then
+        cell.Value = "GAS CORDOBA MONTERIA"
+    ElseIf cellValue = "385" Then
+        cell.Value = "GAS CORDOBA NEIVA"
+    ElseIf cellValue = "393" Then
+        cell.Value = "GAS CORDOBA VILLAVICENCIO"
+    ElseIf cellValue = "395" Then
+        cell.Value = "GAS CORDOBA PASTO"
+    ElseIf cellValue = "398" Then
+        cell.Value = "LUX VILLAVICENCIO"
+    ElseIf cellValue = "422" Then
+        cell.Value = "HIPINITO PIEDECUESTA"
+    ElseIf cellValue = "438" Then
+        cell.Value = "HIPINITO CUCUTA"
+    ElseIf cellValue = "441" Then
+        cell.Value = "HIPINITO DUITAMA"
+    ElseIf cellValue = "445" Then
+        cell.Value = "NGB"
+    ElseIf cellValue = "447" Then
+        cell.Value = "HIPINITO VALLEDUPAR"
+    End If
+Next cell
+
+' Establecer títulos en las celdas A1 y B1
+DestWorksheet.Range("A1").Value = "CENTRO"
+DestWorksheet.Range("B1").Value = "Eficiencia mecanica"
+DestWorksheet.Range("C1").Value = "Tiempo de produccion"
+
+        ' Desactivar las alertas
+        excelApp.DisplayAlerts = False
+        ' Guardar el nuevo archivo con un nombre específico
+        DestWorkbook.SaveAs "C:\Users\aprmttoyu\Documents\CAM\ZBCRE009 " & cOL1 & ".xlsx"
+
+        ' Cerrar ambos libros de Excel
+        SourceWorkbook.Close False
+        DestWorkbook.Close True
+        excelApp.Quit
+        ' Liberar los recursos de Excel al finalizar
+        Set PasteRangeB = Nothing
+        Set PasteRangeC = Nothing
+        Set PasteRangeA = Nothing
+        Set CopyRangeO = Nothing
+        Set CopyRangeP = Nothing
+        Set CopyRangeE = Nothing
+        Set DestWorksheet = Nothing
+        Set DestWorkbook = Nothing
+        Set AutoFilterRange = Nothing
+        Set SourceWorksheet = Nothing
+        Set SourceWorkbook = Nothing
+        Set excelApp = Nothing
+    Else
+        ' Si no hay datos, mostrar un mensaje o tomar la acción adecuada
+        MsgBox "No hay datos después de aplicar el filtro.", vbInformation
+        SourceWorkbook.Close False
+        Set SourceWorkbook = Nothing
+        Set excelApp = Nothing
+    End If
+    
+    Dim ArchivoOriginal As Workbook
+    Dim ArchivoAB As Workbook
+    Dim ArchivoAC As Workbook
+    Dim HojaOriginal As Worksheet
+    Dim HojaAB As Worksheet
+    Dim HojaAC As Worksheet
+    Dim UltimaFila As Long
+
+    ' Definir el archivo original
+    Set ArchivoOriginal = Workbooks.Open("C:\Users\aprmttoyu\Documents\CAM\ZBCRE009 " & cOL1 & ".xlsx")
+
+    ' Crear un nuevo archivo para los datos de las columnas A y B
+    Set ArchivoAB = Workbooks.Add
+    Set HojaAB = ArchivoAB.Sheets(1)
+
+    ' Crear un nuevo archivo para los datos de las columnas A y C
+    Set ArchivoAC = Workbooks.Add
+    Set HojaAC = ArchivoAC.Sheets(1)
+
+    ' Referenciar la hoja original
+    Set HojaOriginal = ArchivoOriginal.Sheets(1)
+
+    ' Encontrar la última fila con datos en la columna A
+    UltimaFila = HojaOriginal.Cells(HojaOriginal.Rows.Count, "A").End(xlUp).Row
+
+    ' Copiar datos de las columnas A y B al nuevo archivo
+    HojaOriginal.Range("A1:B" & UltimaFila).Copy Destination:=HojaAB.Range("A1")
+
+    ' Copiar datos de las columnas A y C al nuevo archivo
+    HojaOriginal.Range("A1:C" & UltimaFila).Copy Destination:=HojaAC.Range("A1")
+    
+    ' Eliminar la columna B en el archivo AC
+    HojaAC.Columns("B:B").Delete
+    Application.DisplayAlerts = False
+    ' Guardar los nuevos archivos con nombres específicos
+    ArchivoAB.SaveAs "C:\Users\aprmttoyu\Documents\CAM\ZBCRE009 Eficiencia mecanica " & cOL1 & ".xlsx"
+    ArchivoAC.SaveAs "C:\Users\aprmttoyu\Documents\CAM\ZBCRE009 Tiempo produccion " & cOL1 & ".xlsx"
+
+    ' Cerrar los archivos sin guardar cambios
+    ArchivoAB.Close False
+    ArchivoAC.Close False
+    ArchivoOriginal.Close False
+    
+End Sub
+
+Function EncodeFileToBase64(filePath As String) As String
+    Dim inputFile As Integer
+    Dim fileContent() As Byte
+    Dim xmlDoc As Object
+    Dim node As Object
+    Dim base64String As String
+   
+    ' Leer el archivo en un array de bytes
+    inputFile = FreeFile
+    Open filePath For Binary As inputFile
+    ReDim fileContent(0 To LOF(inputFile) - 1)
+    Get inputFile, , fileContent
+    Close inputFile
+   
+    ' Crear el objeto MSXML2.DOMDocument para codificar en Base64
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument")
+    Set node = xmlDoc.createElement("base64")
+    node.DataType = "bin.base64"
+    node.nodeTypedValue = fileContent
+    base64String = Replace(node.Text, vbLf, "") ' Eliminar saltos de línea
+   
+    ' Limpiar
+    Set node = Nothing
+    Set xmlDoc = Nothing
+   
+    EncodeFileToBase64 = base64String
+End Function
+ 
+
